@@ -180,16 +180,5 @@ Update `BASE_URL` and Twilio webhook URL accordingly.
 
 ---
 
-## 🤝 Contributing
-
-Pull requests are welcome. For major changes, please open an issue first.
-
----
-
-## 📄 License
-
-MIT License
-
----
 
 **Built with ❤️ to automate and improve real-world HR screening.**
