@@ -23,10 +23,6 @@ from config.settings import BASE_URL
 MIN_QUESTIONS = 4
 
 
-# --------------------------------------------------
-# Helpers
-# --------------------------------------------------
-
 def normalize_ai_turn(ai_turn):
     action = ai_turn.get("action")
 
@@ -56,43 +52,36 @@ def is_warmup_reply(text: str) -> bool:
 
 
 def twilio_record(vr: VoiceResponse):
-    vr.pause(length=1)
     vr.record(
         max_length=120,
         timeout=5,
-        play_beep=True,
+        play_beep=False,
         action=f"{settings.BASE_URL}/voice/",
         method="POST"
     )
 
 def safe_record(vr, prompt=None):
     if prompt:
-        vr.say(prompt, voice="alice")
+        vr.say(prompt, voice="alice", language="en-IN")
 
     vr.pause(length=1)
 
     vr.record(
         max_length=120,
         timeout=5,
-        play_beep=True,
+        play_beep=False,
         action=f"{settings.BASE_URL}/voice/",
         method="POST"
     )
-# --------------------------------------------------
-# Main Voice Endpoint
-# --------------------------------------------------
 
 @csrf_exempt
 def voice_interview(request):
     vr = VoiceResponse()
-    phone = request.POST.get("From") or request.POST.get("To")
+    phone = request.POST.get("To") or request.POST.get("From")
 
     candidate, _ = Candidate.objects.get_or_create(phone=phone)
     conversation = candidate.conversation or []
 
-    # --------------------------------------------------
-    # 1️⃣ AI INTRO (ONLY ONCE)
-    # --------------------------------------------------
     if not conversation:
         intro_text = (
             "Hello, this is an automated interview call from the HR team. "
@@ -109,13 +98,10 @@ def voice_interview(request):
         candidate.conversation = conversation
         candidate.save(update_fields=["conversation"])
 
-        vr.say(intro_text, voice="alice")
+        vr.say(intro_text, voice="alice", language="en-IN")
         twilio_record(vr)
         return HttpResponse(str(vr), content_type="text/xml")
 
-    # --------------------------------------------------
-    # 2️⃣ HANDLE CANDIDATE ANSWER
-    # --------------------------------------------------
     if "RecordingUrl" in request.POST:
         recording_url = request.POST["RecordingUrl"] + ".wav"
         local_path = f"media/recordings/{candidate.id}_{uuid.uuid4().hex}.wav"
@@ -141,9 +127,6 @@ def voice_interview(request):
             candidate.conversation = conversation
             candidate.save(update_fields=["conversation"])
 
-    # --------------------------------------------------
-    # 3️⃣ AI DECISION (AFTER ANSWER)
-    # --------------------------------------------------
     question_count = count_ai_questions(conversation)
     ai_turn = normalize_ai_turn(generate_ai_turn(conversation))
 
@@ -151,14 +134,11 @@ def voice_interview(request):
     if question_count < MIN_QUESTIONS:
         ai_turn["action"] = "ask_question"
 
-    # --------------------------------------------------
-    # 4️⃣ END INTERVIEW (ONLY IF VALID)
-    # --------------------------------------------------
     if ai_turn["action"] == "end_interview" and question_count >= MIN_QUESTIONS:
         vr.say(
             "Thank you for your time. We have enough information for now. "
             "Our HR team will contact you.",
-            voice="alice"
+            voice="alice", language="en-IN"
         )
         vr.hangup()
 
@@ -185,10 +165,6 @@ def voice_interview(request):
 
         return HttpResponse(str(vr), content_type="text/xml")
 
-
-    # --------------------------------------------------
-    # 5️⃣ ASK NEXT QUESTION
-    # --------------------------------------------------
     conversation.append({
         "role": "ai",
         "type": "question",
@@ -198,14 +174,10 @@ def voice_interview(request):
     candidate.conversation = conversation
     candidate.save(update_fields=["conversation"])
 
-    vr.say(ai_turn["text"], voice="alice")
+    vr.say(ai_turn["text"], voice="alice", language="en-IN")
     twilio_record(vr)
     return HttpResponse(str(vr), content_type="text/xml")
 
-
-# --------------------------------------------------
-# Call UI
-# --------------------------------------------------
 
 def call_ui(request):
     if request.method == "POST":

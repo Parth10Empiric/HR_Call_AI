@@ -7,10 +7,10 @@ client = Groq(api_key=settings.GROQ_API_KEY)
 # client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
-def call_groq(prompt, temperature=0.2, max_tokens=300):
+def call_groq(prompt, temperature=0.2, max_tokens=800):
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",  # ✅ current supported fast model
+            model="llama-3.1-8b-instant",  
             messages=[
                 {
                     "role": "system",
@@ -157,9 +157,7 @@ def local_invalid_check(answer: str) -> dict:
 #  ----------------------------------------------------------------------
 
 def extract_answers_from_conversation(conversation):
-    """
-    Groups candidate answers based on last AI intent.
-    """
+
     grouped = {
         "INTRO": [],
         "TECHNICAL": [],
@@ -191,7 +189,6 @@ def extract_answers_from_conversation(conversation):
             
     intent_coverage = {k: len(v) for k, v in grouped.items()}
 
-    # Merge multiple answers into one per category
     return {
         "answers": {
             k: " ".join(v).strip()
@@ -599,7 +596,7 @@ def evaluate_full_interview_from_conversation(conversation):
     final_score = round((total_score / max(max_possible, 1)) * 100)
 
     decision = (
-        "STRONG HIRE" if final_score >= 70 else
+        "STRONG HIRE" if final_score >= 67 else
         "CONSIDER" if final_score >= 55 else
         "LESS CONSIDER" if final_score >= 40 else
         "REJECT"
